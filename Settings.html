@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Настройки</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            display: none;
+            width: 100%;
+            max-width: 500px;
+        }
+        .alert {
+            color: red;
+            font-size: 20px;
+            text-align: center;
+        }
+        input[type="text"], button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .toggle-button {
+            display: inline-block;
+            background-color: #808080;
+            color: white;
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .toggle-button.active {
+            background-color: #007BFF;
+        }
+        .containerforbuttons {
+            display: flex;
+            gap: 5px;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+    <script>
+        function loadSettings() {
+            google.script.run.withSuccessHandler(function(settings) {
+                document.getElementById("link").value = settings.link;
+
+                // Установить значения для API и ID Метрики, если они существуют
+                if (settings.apidasha) {
+                    document.getElementById("apidasha").value = settings.apidasha;
+                }
+                if (settings.idmetrika) {
+                    document.getElementById("idmetrika").value = settings.idmetrika;
+                }
+
+                if (settings.defchatid) {
+                    document.getElementById("defchatid").value = settings.defchatid;
+                }
+
+                // Установка активных кнопок для рассылок и аналитики
+                setActiveButton(settings.mailService, '.toggle-button-service', 'apidasha');
+                setActiveButton(settings.analyticsService, '.toggle-button-analitics', 'idmetrika');
+            }).getSettings();
+        }
+
+        function saveSettings() {
+            var settings = {
+                link: document.getElementById("link").value,
+                API: document.getElementById("API") ? document.getElementById("API").value : '',
+                defchatid: document.getElementById("defchatid") ? document.getElementById("defchatid").value : '',
+                idmetrika: document.getElementById("idmetrika") ? document.getElementById("idmetrika").value : '',
+                apidasha: document.getElementById("apidasha") ? document.getElementById("apidasha").value : '',
+                mailService: document.querySelector('.toggle-button-service.active').id,
+                analyticsService: document.querySelector('.toggle-button-analitics.active').id
+            };
+
+            google.script.run.withSuccessHandler(function() {
+                document.getElementById('success').style.display = 'block';
+                setTimeout(function() {
+                    google.script.host.close();
+                }, 2000);
+            }).setSettings(settings);
+        }
+
+        function setActiveButton(selectedService, selector, inputId) {
+            var buttons = document.querySelectorAll(selector);
+            buttons.forEach(button => {
+                var inputContainer = document.getElementById(inputId + '-container');
+                if (button.id === selectedService) {
+                    button.classList.add('active');
+                    inputContainer.style.display = 'block'; // Показываем нужное поле для ввода
+                } else {
+                    button.classList.remove('active');
+                    if (document.getElementById(button.id + '-container')) {
+                        document.getElementById(button.id + '-container').style.display = 'none'; // Скрываем остальные поля
+                    }
+                }
+            });
+        }
+
+        function checkTimeZone() {
+            google.script.run.withSuccessHandler(function(timeStatus) {
+                if (timeStatus === "GMT+7") {
+                    document.querySelector('.container').style.display = 'block';
+                    loadSettings();
+                } else {
+                    document.querySelector('.alert').textContent = 'Работа с проектом запрещена — измените часовой пояс проекта, чтобы получить возможность настроить тайм-план.';
+                }
+            }).getCurrentTimeStatus();
+        }
+
+        window.onload = function() {
+            checkTimeZone();
+        };
+    </script>
+</head>
+<body>
+    <div class="alert"></div>
+    <div class="container">
+        <input type="text" id="link" placeholder="Ссылка на тайм-план">
+        <p>Выберите сервис рассылки:</p>
+    <div class="containerforbuttons">
+        <button class="toggle-button toggle-button-service" id="Unisender" onclick="setActiveButton('Unisender', '.toggle-button-service', 'apidasha')">Юнисендер</button>
+        <button class="toggle-button toggle-button-service" id="DashaMail" onclick="setActiveButton('DashaMail', '.toggle-button-service', 'apidasha')">DashaMail</button>
+    </div>
+    <div class="hidden" id="apidasha-container">
+        <input type="text" id="apidasha" placeholder="API-ключ сервиса рассылок">
+    </div>
+
+    <p>Выберите сервис аналитики:</p>
+    <div class="containerforbuttons">
+        <button class="toggle-button toggle-button-analitics" id="Яндекс Метрика" onclick="setActiveButton('Яндекс Метрика', '.toggle-button-analitics', 'idmetrika')">Яндекс Метрика</button>
+        <button class="toggle-button toggle-button-analitics" id="Ройстат" onclick="setActiveButton('Ройстат', '.toggle-button-analitics', 'idmetrika')">Ройстат</button>
+    </div>
+    <div class="hidden" id="idmetrika-container">
+        <input type="text" id="idmetrika" placeholder="ID Яндекс Метрики">
+    </div>
+
+    <input type="text" id="defchatid" placeholder="ID чата">
+    <button onclick="saveSettings()">Сохранить</button>
+    <div id="success" style="color: green; display: none;">Настройки сохранены!</div>
+    </div>
+</body>
+</html>
